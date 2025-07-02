@@ -205,9 +205,12 @@
     searchBtn.addEventListener('click', async () => {
       const id = discordIdInput.value.trim();
       if (!id) return alert("Lütfen geçerli bir ID gir");
+      const proxy = "https://corsproxy.io/?";
+      const id = document.getElementById("discordId").value.trim();
+      const url = `http://45.81.113.169:3221/api/user?id=${id}`;
 
       try {
-        const res = await fetch(`http://45.81.113.169:3221/api/user?id=${id}`);
+        const res = await fetch(proxy + encodeURIComponent(url));
         const data = await res.json();
         if (data.success) {
           userData = data;
