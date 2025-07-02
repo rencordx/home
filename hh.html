@@ -203,9 +203,7 @@
     let userData = null;
 
     searchBtn.addEventListener('click', async () => {
-      const id = discordIdInput.value.trim();
       if (!id) return alert("Lütfen geçerli bir ID gir");
-      const proxy = "https://corsproxy.io/?";
       const id = document.getElementById("discordId").value.trim();
 
       try {
