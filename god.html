@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rencord GUI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top left, #0f0c29, #302b63, #24243e);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .main-gui {
+      position: relative;
+      width: 600px;
+      background: rgba(0,0,0,0.85);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 0 25px rgba(0,255,255,0.3);
+      text-align: center;
+      animation: fadeIn 1s ease;
+    }
+
+    .main-gui h1 {
+      font-size: 3rem;
+      font-weight: bold;
+      animation: rgbText 4s infinite linear;
+    }
+
+    @keyframes rgbText {
+      0% { color: red; }
+      25% { color: orange; }
+      50% { color: lime; }
+      75% { color: cyan; }
+      100% { color: violet; }
+    }
+
+    .search-bar {
+      margin-top: 20px;
+      position: relative;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 15px 20px;
+      border-radius: 10px;
+      border: none;
+      background: #111;
+      color: white;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .search-bar input:focus {
+      outline: none;
+      box-shadow: 0 0 15px cyan;
+    }
+
+    .search-bar button {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .search-bar button:hover {
+      color: cyan;
+    }
+
+    .info-gui {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: #111;
+      color: white;
+      padding: 30px;
+      border-radius: 20px;
+      width: 650px;
+      max-width: 90%;
+      box-shadow: 0 0 30px rgba(255,255,255,0.2);
+      transition: all 0.4s ease;
+      z-index: 9999;
+    }
+
+    .info-gui.active {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .info-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .info-header h2 {
+      font-size: 2rem;
+    }
+
+    .close-btn {
+      background: red;
+      border: none;
+      border-radius: 50%;
+      color: white;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .tab-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .tab-buttons button {
+      background: #222;
+      border: 1px solid cyan;
+      color: white;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: 0.3s;
+    }
+
+    .tab-buttons button:hover {
+      background: cyan;
+      color: black;
+    }
+
+    .tab-content {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .tab-content img {
+      border-radius: 20px;
+      max-width: 100%;
+    }
+
+    .tab-content pre {
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: scale(0.8);}
+      to {opacity: 1; transform: scale(1);}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-gui">
+    <h1>Rencord</h1>
+    <div class="search-bar">
+      <input type="text" id="discordId" placeholder="Discord ID gir">
+      <button id="searchBtn"><i class="fa fa-search"></i></button>
+    </div>
+  </div>
+
+  <div class="info-gui" id="infoWindow">
+    <div class="info-header">
+      <h2>Kullanıcı Bilgisi</h2>
+      <button class="close-btn" id="closeBtn">X</button>
+    </div>
+    <div class="tab-buttons">
+      <button onclick="switchTab('profile')">Profil</button>
+      <button onclick="switchTab('status')">Durum</button>
+      <button onclick="switchTab('servers')">Sunucular</button>
+    </div>
+    <div class="tab-content" id="tabContent">
+      <p>Yükleniyor...</p>
+    </div>
+  </div>
+
+  <script>
+    const searchBtn = document.getElementById('searchBtn');
+    const discordIdInput = document.getElementById('discordId');
+    const infoWindow = document.getElementById('infoWindow');
+    const closeBtn = document.getElementById('closeBtn');
+    const tabContent = document.getElementById('tabContent');
+    let userData = null;
+
+    searchBtn.addEventListener('click', async () => {
+      const id = discordIdInput.value.trim();
+      if (!id) return alert("Lütfen geçerli bir ID gir");
+
+      const proxy = "https://corsproxy.io/?";
+      const url = `http://45.81.113.169:3221/api/user?id=${id}`;
+
+      try {
+        const res = await fetch(proxy + encodeURIComponent(url));
+        const data = await res.json();
+        if (data.success) {
+          userData = data;
+          showInfo();
+          switchTab('profile');
+        } else {
+          alert("Kullanıcı bulunamadı");
+        }
+      } catch (e) {
+        alert("Hata oluştu: " + e.message);
+      }
+    });
+
+    closeBtn.addEventListener('click', () => {
+      infoWindow.classList.remove('active');
+    });
+
+    function showInfo() {
+      infoWindow.classList.add('active');
+    }
+
+    function switchTab(tab) {
+      if (!userData) return;
+      const user = userData.UserInfo;
+      const displayNames = userData.displayNames;
+      const where = userData.WhereNow;
+      const guilds = userData.Guilds;
+
+      if (tab === 'profile') {
+        tabContent.innerHTML = `
+          <img src="${user.UserAvatar}" alt="Avatar" width="120">
+          <pre><strong>Display Names:</strong>\n${displayNames.join('\n')}</pre>
+        `;
+      } else if (tab === 'status') {
+        tabContent.innerHTML = `
+          <pre>
+<strong>Şu An:</strong> ${where.type} - #${where.channelName} @${where.guildName}
+<strong>Son Mesaj:</strong> ${userData.LastSeen?.Message?.content || 'Yok'}
+          </pre>
+        `;
+      } else if (tab === 'servers') {
+        tabContent.innerHTML = guilds.map(g =>
+          `<pre><strong>${g.guildName}</strong>\nTakma Ad: ${g.displayName}\nSahip: ${g.ownerName}</pre>`
+        ).join("");
+      }
+    }
+  </script>
+</body>
+</html>
