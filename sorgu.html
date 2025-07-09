@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Discord Invite Info</title>
+  <title>Discord Invite Info - OAuth + IP Kontrol</title>
   
   <link
     rel="stylesheet"
@@ -14,9 +14,7 @@
   />
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body, html {
       margin: 0; padding: 0;
       height: 100vh;
@@ -84,7 +82,6 @@
       margin-bottom: 20px;
       position: relative;
     }
-
     @keyframes borderGlow {
       0% {
         border-image-source: linear-gradient(
@@ -170,18 +167,10 @@
       height: 24px;
     }
     @keyframes dots {
-      0%, 20% {
-        content: "";
-      }
-      40% {
-        content: ".";
-      }
-      60% {
-        content: "..";
-      }
-      80%, 100% {
-        content: "...";
-      }
+      0%, 20% { content: ""; }
+      40% { content: "."; }
+      60% { content: ".."; }
+      80%, 100% { content: "..."; }
     }
     .loading span::after {
       display: inline-block;
@@ -211,6 +200,25 @@
       user-select: text;
       margin-top: 10px;
     }
+
+    #logoutBtn {
+      display: none;
+      margin-bottom: 20px;
+      background: #ff4757;
+      color: white;
+      border: none;
+      border-radius: 16px;
+      padding: 10px 20px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 10px #ff4757aa;
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+    #logoutBtn:hover {
+      background-color: #e03f4f;
+      box-shadow: 0 0 15px #e03f4faa;
+    }
   </style>
 </head>
 <body>
@@ -219,6 +227,8 @@
     <i class="fab fa-discord"></i>
     <span>Discord Login!</span>
   </div>
+
+  <button id="logoutBtn" title="Çıkış Yap">Çıkış Yap</button>
 
   <div class="search-container" style="display:none;" id="searchContainer">
     <input
@@ -245,9 +255,13 @@
   <pre class="terminal" id="terminal" style="display:none;"></pre>
 
 <script>
-  const discordOAuthURL = "https://discord.com/oauth2/authorize?client_id=1354724175788380327&response_type=code&redirect_uri=https%3A%2F%2Frencordx.github.io%2Fhome%2Fcallback.html&scope=identify+email";
+  const clientId = "1354724175788380327";
+  const redirectUri = "https://rencordx.github.io/home/callback.html";
+  const discordOAuthURL =
+    `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=identify email`;
 
   const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
   const searchContainer = document.getElementById("searchContainer");
   const inviteInput = document.getElementById("inviteInput");
   const searchBtn = document.getElementById("searchBtn");
@@ -255,21 +269,107 @@
   const loading = document.getElementById("loading");
   const terminal = document.getElementById("terminal");
 
+  // Show login page or main UI based on auth
+  async function checkAuth() {
+    const savedIP = localStorage.getItem("user_ip");
+    const savedToken = localStorage.getItem("access_token");
+
+    if (!savedToken) {
+      showLogin();
+      return;
+    }
+
+    try {
+      // Check current IP
+      const ipRes = await fetch("https://api.ipify.org?format=json");
+      const ipData = await ipRes.json();
+      if (savedIP !== ipData.ip) {
+        // IP değişmiş, logout
+        logout();
+        return;
+      }
+
+      // IP aynı ise giriş başarılı, göster
+      showMainUI();
+    } catch {
+      // Hata varsa logout yap
+      logout();
+    }
+  }
+
+  function showLogin() {
+    loginBtn.style.display = "flex";
+    logoutBtn.style.display = "none";
+    searchContainer.style.display = "none";
+    loading.style.display = "none";
+    terminal.style.display = "none";
+  }
+
+  function showMainUI() {
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "block";
+    searchContainer.style.display = "flex";
+  }
+
   loginBtn.addEventListener("click", () => {
     window.location.href = discordOAuthURL;
   });
 
-  window.addEventListener("load", () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const inviteCode = urlParams.get("invite");
-    if (inviteCode) {
-      loginBtn.style.display = "none";
-      searchContainer.style.display = "flex";
-      inviteInput.value = inviteCode;
-      searchInvite(inviteCode);
-    }
+  logoutBtn.addEventListener("click", () => {
+    logout();
   });
 
+  function logout() {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_ip");
+    showLogin();
+  }
+
+  // OAuth kodu al, token çek ve IP kaydet
+  async function handleOAuth() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    if (!code) return false;
+
+    try {
+      // Exchange code for access token
+      const data = new URLSearchParams({
+        client_id: clientId,
+        client_secret: "3A8QJOc_MSUXC8rXtA-kr_rzGt8b8q2d", // burada client secret açık, dikkat et
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        scope: "identify email"
+      });
+
+      const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: data
+      });
+      const tokenData = await tokenRes.json();
+
+      if (!tokenData.access_token) throw new Error("Access token alınamadı");
+
+      // IP al
+      const ipRes = await fetch("https://api.ipify.org?format=json");
+      const ipData = await ipRes.json();
+
+      // Kaydet localStorage
+      localStorage.setItem("access_token", tokenData.access_token);
+      localStorage.setItem("user_ip", ipData.ip);
+
+      // URL'deki parametreleri temizle (history API)
+      window.history.replaceState({}, document.title, "/home/callback.html");
+
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
+  // Arama fonksiyonu
   async function searchInvite(inviteCode) {
     if (!inviteCode.trim()) return;
     loading.style.display = "block";
@@ -294,23 +394,34 @@
 
   searchBtn.addEventListener("click", () => {
     const val = inviteInput.value.trim();
-    if (val) {
-      searchInvite(val);
-    }
+    if (val) searchInvite(val);
   });
 
   inviteInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      searchBtn.click();
-    }
+    if (e.key === "Enter") searchBtn.click();
   });
-  
+
   clearBtn.addEventListener("click", () => {
     inviteInput.value = "";
     terminal.textContent = "";
     terminal.style.display = "none";
     loading.style.display = "none";
   });
+
+  // Sayfa yüklenince
+  window.addEventListener("load", async () => {
+    // Eğer OAuth callback kodu varsa işle
+    const didOAuth = await handleOAuth();
+
+    if (!didOAuth) {
+      // OAuth yapılmamış, IP kontrol et localStorage'dan
+      checkAuth();
+    } else {
+      // OAuth yapıldıktan sonra arayüzü göster
+      checkAuth();
+    }
+  });
 </script>
+
 </body>
-  </html>
+</html>
